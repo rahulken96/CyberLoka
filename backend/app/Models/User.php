@@ -46,6 +46,17 @@ class User extends Authenticatable
         ];
     }
 
+    //================== SCOPE ==================
+    public function scopeSearch($q, $search)
+    {
+        return $q->where('user_code', 'like', "%{$search}%")
+            ->orWhere('name', 'like', "%{$search}%")
+            ->orWhere('email', 'like', "%{$search}%")
+            ->orWhere('phone', 'like', "%{$search}%")
+        ;
+    }
+
+    //================== RELATION ==================
     public function profile()
     {
         return $this->hasOne(Profile::class, 'user_code', 'user_code');
