@@ -23,11 +23,15 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $faker = \Faker\Factory::create('id_ID');
+
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'user_code' => (string) Str::uuid()->toString(),
+            'name' => $faker->name(),
+            'phone' => $faker->unique()->numerify('08##########'),
+            'email' => $faker->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= Hash::make('!qwe@12345'),
             'remember_token' => Str::random(10),
         ];
     }
