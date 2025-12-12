@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\ResponseHelper;
-use App\Http\Resources\PaginateResource;
-use App\Http\Resources\UserResource;
-use App\Interfaces\UserRepositoryInterface;
 use Illuminate\Http\Request;
+use App\Helpers\ResponseHelper;
+use App\Http\Resources\UserResource;
+use App\Http\Resources\PaginateResource;
+use Illuminate\Support\Facades\Validator;
+use App\Interfaces\UserRepositoryInterface;
 
 class UserController extends Controller
 {
@@ -29,17 +30,27 @@ class UserController extends Controller
 
     public function indexPaginate(Request $request)
     {
-        $request->validate([
-            'search'    => 'nullable|string',
-            'rows'      => 'required|integer'
-        ],[
-            'rows.required'     => 'Rows wajib diisi',
-            'rows.integer'      => 'Format Rows wajib angka',
-        ]);
+        $rules = [
+            'search'         => 'nullable|string',
+            'rows_per_page'  => 'required|integer'
+        ];
+
+        $messages = [
+            'rows_per_page.required'    => 'Jumlah baris per halaman wajib diisi',
+            'rows_per_page.integer'     => 'Format jumlah baris per halaman wajib angka',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
 
         try {
             $search = $request->search ?? null;
-            $users = $this->userRepoInter->getAllPaginate($search, $request->rows);
+            $users = $this->userRepoInter->getAllPaginate($search, $request->rows_per_page);
             return ResponseHelper::jsonResponse(true, 'Data User Berhasil Didapatkan', PaginateResource::make($users, UserResource::class));
         } catch (\Exception $err) {
             return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);

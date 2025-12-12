@@ -20,7 +20,7 @@ class UserRepository implements UserRepositoryInterface
         }
 
         if ($exec) {
-            $query->get();
+            return $query->get();
         }
 
         return $query;
