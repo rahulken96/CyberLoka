@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Helpers\ResponseHelper;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Resources\UserResource;
+use App\Http\Requests\UserStoreRequest;
 use App\Http\Resources\PaginateResource;
 use Illuminate\Support\Facades\Validator;
 use App\Interfaces\UserRepositoryInterface;
@@ -22,7 +25,7 @@ class UserController extends Controller
     {
         try {
             $users = $this->userRepoInter->getAll($request->search, $request->limit, true);
-            return ResponseHelper::jsonResponse(true, 'Data User Berhasil Didapatkan', UserResource::collection($users));
+            return ResponseHelper::jsonResponse(true, 'Data User Berhasil Didapatkan', UserResource::collection($users)); //Return untuk banyak data (collection)
         } catch (\Exception $err) {
             return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
         }
@@ -60,17 +63,46 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(UserStoreRequest $request)
     {
-        //
+        $request = $request->validated();
+
+        try {
+            DB::beginTransaction();
+            $user = $this->userRepoInter->create($request);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'User Berhasil Ditambahkan', new UserResource($user), 201); //Return untuk 1 data (new Resource)
+        } catch (\Exception $err) {
+            DB::rollBack();
+            Log::error('Failed to save user data', [
+                'message' => $err?->getMessage(),
+                'file' => $err?->getFile(),
+                'line' => $err?->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
+
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $userCode)
     {
-        //
+        try {
+            $user = $this->userRepoInter->getOneUser($userCode);
+            if (!$user) {
+                return ResponseHelper::jsonResponse(false, 'User Tidak Ditemukan!', null, 404);
+            }
+            return ResponseHelper::jsonResponse(true, 'Data User Ditemukan', new UserResource($user), 200);
+        } catch (\Exception $err) {
+            Log::error('Failed to save user data', [
+                'message' => $err?->getMessage(),
+                'file' => $err?->getFile(),
+                'line' => $err?->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**
