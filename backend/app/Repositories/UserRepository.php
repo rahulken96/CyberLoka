@@ -4,8 +4,6 @@ namespace App\Repositories;
 
 use App\Models\User;
 use App\Helpers\StringHelper;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use App\Interfaces\UserRepositoryInterface;
 use Exception;
@@ -40,6 +38,9 @@ class UserRepository implements UserRepositoryInterface
     public function getOneUser(string $string, bool $isWithID = false)
     {
         if ($isWithID) {
+            if (!ctype_digit($string)) {
+                return null;
+            }
             return User::find($string);
         }
 
@@ -48,26 +49,41 @@ class UserRepository implements UserRepositoryInterface
 
     public function create(array $data)
     {
-        try {
-            DB::beginTransaction();
+        $newUser = new User();
+        $newUser->name = $data['name'];
+        $newUser->email = $data['email'];
+        $newUser->phone = StringHelper::normalizePhone($data['phone']);
+        $newUser->password = Hash::make($data['password']);
+        $newUser->save();
 
-            $newUser = new User();
-            $newUser->name = $data['name'];
-            $newUser->email = $data['email'];
-            $newUser->phone = StringHelper::normalizePhone($data['phone']);
-            $newUser->password = Hash::make($data['password']);
-            $newUser->save();
+        return $newUser;
+    }
 
-            DB::commit();
-            return $newUser;
-        } catch (\Exception $err) {
-            DB::rollBack();
-            Log::error('Failed to save user data', [
-                'message' => $err?->getMessage(),
-                'file' => $err?->getFile(),
-                'line' => $err?->getLine(),
-            ]);
-            throw new Exception($err->getMessage());
+    public function update(string $string, array $data, bool $isWithID = false)
+    {
+        $user = $this->getOneUser($string, $isWithID);
+        if (!$user) {
+            throw new Exception('User tidak ditemukanzzz!', 404);
         }
+
+        if (!empty($data['name'])) $user->name = $data['name'];
+        if (!empty($data['email'])) $user->email = $data['email'];
+        if (!empty($data['phone'])) $user->phone = StringHelper::normalizePhone($data['phone']);
+        if (!empty($data['password'])) $user->password = Hash::make($data['password']);
+        $user->save();
+
+        return $user;
+    }
+
+    public function delete(string $string, bool $isWithID = false)
+    {
+        $user = $this->getOneUser($string, $isWithID);
+        if (!$user) {
+            throw new Exception('User tidak ditemukanzzz!', 404);
+        }
+
+        $user->delete();
+
+        return $user;
     }
 }
