@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('date_of_birth')->nullable();
             $table->string('image')->nullable();
             $table->string('occupation')->nullable();
-            $table->integer('nik')->nullable();
+            $table->string('nik', 16)->nullable();
             $table->enum('gender', ["pria", "wanita"])->nullable();
             $table->enum('martial_status', ["single", "menikah"])->nullable();
             $table->timestamps();
