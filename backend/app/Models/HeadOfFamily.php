@@ -2,13 +2,22 @@
 
 namespace App\Models;
 
-use App\Traits\UUID;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class HeadOfFamily extends Model
 {
-    use SoftDeletes, UUID;
+    use SoftDeletes;
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->family_code)) {
+                $model->family_code = (string) Str::uuid()->toString();
+            }
+        });
+    }
 
     protected $fillable = [
         'family_code',
@@ -39,5 +48,24 @@ class HeadOfFamily extends Model
     public function eventParticipants()
     {
         return $this->hasMany(EventParticipant::class, 'family_code', 'family_code');
+    }
+
+    //================== SCOPE ==================
+    public function scopeSearch($q, $search)
+    {
+        $search = "%{$search}%";
+        return $q->whereHas('user', function ($qq) use ($search) {
+            $qq->where('user_code', 'like', "$search")
+                ->orWhere('name', 'like', "$search")
+                ->orWhere('email', 'like', "$search")
+                ->orWhere('phone', 'like', "$search")
+            ;
+        })
+        ->orWhere('family_code', 'like', "$search")
+        ->orWhere('occupation', 'like', "$search")
+        ->orWhere('nik', 'like', "$search")
+        ->orWhere('gender', 'like', "$search")
+        ->orWhere('martial_status', 'like', "$search")
+        ;
     }
 }
