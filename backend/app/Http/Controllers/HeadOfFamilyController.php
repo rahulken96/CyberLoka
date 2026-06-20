@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\ResponseHelper;
+use App\Http\Requests\HeadOfFamilyStoreRequest;
 use App\Http\Resources\HeadOfFamilyResource;
 use App\Http\Resources\PaginateResource;
 use App\Interfaces\HeadOfFamilyRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class HeadOfFamilyController extends Controller
@@ -54,7 +57,7 @@ class HeadOfFamilyController extends Controller
         try {
             $search = $request->search ?? null;
             $headOfFamilies = $this->headOfFamilyRepoInter->getAllPaginate($search, $request->rows_per_page);
-            return ResponseHelper::jsonResponse(true, 'Data User Berhasil Didapatkan', PaginateResource::make($headOfFamilies, HeadOfFamilyResource::class));
+            return ResponseHelper::jsonResponse(true, 'Data Kepala Keluarga Berhasil Didapatkan', PaginateResource::make($headOfFamilies, HeadOfFamilyResource::class));
         } catch (\Throwable $err) {
             return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
         }
@@ -63,9 +66,24 @@ class HeadOfFamilyController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(HeadOfFamilyStoreRequest $request)
     {
-        //
+        $request = $request->validated();
+        DB::beginTransaction();
+
+        try {
+            $headOfFamily = $this->headOfFamilyRepoInter->create($request);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Kepala Keluarga Berhasil Ditambahkan', new HeadOfFamilyResource($headOfFamily), 201);
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to save head of family data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**

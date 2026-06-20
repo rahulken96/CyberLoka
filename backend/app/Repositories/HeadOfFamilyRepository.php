@@ -35,4 +35,27 @@ class HeadOfFamilyRepository implements HeadOfFamilyRepositoryInterface
         $query = $this->getAll($search, $rowsPerPage, false);
         return $query->paginate($rowsPerPage);
     }
+
+    public function create(array $data)
+    {
+        $userRepo = new UserRepository();
+        $user = $userRepo->create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'phone'    => $data['phone'],
+            'password' => $data['password'],
+        ]);
+
+        $headOfFamily = new HeadOfFamily();
+        $headOfFamily->user_code      = $user->user_code;
+        $headOfFamily->date_of_birth  = $data['date_of_birth'];
+        $headOfFamily->image          = $data['image']->store('assets/head-of-families', 'public');
+        $headOfFamily->occupation     = $data['occupation'];
+        $headOfFamily->nik            = $data['nik'];
+        $headOfFamily->gender         = $data['gender'];
+        $headOfFamily->martial_status = $data['martial_status'];
+        $headOfFamily->save();
+
+        return $headOfFamily;
+    }
 }
