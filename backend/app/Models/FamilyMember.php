@@ -68,8 +68,8 @@ class FamilyMember extends Model
     //================== CUSTOM FUNCTION ==================
     public static function  findByCode(string $search)
     {
-        return self::where('family_member_code', $search)->first() 
-            ?? self::where('family_code', $search)->first() 
-            ?? self::where('user_code', $search)->first();
+        return self::with(['headOfFamily'])->where('family_member_code', $search)->first() 
+            ?? self::with(['headOfFamily'])->where('family_code', $search)->first() 
+            ?? self::with(['headOfFamily'])->where('user_code', $search)->first();
     }
 }

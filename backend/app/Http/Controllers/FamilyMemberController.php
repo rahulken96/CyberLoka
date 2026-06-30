@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\ResponseHelper;
+use App\Http\Requests\FamilyMemberStoreRequest;
+use App\Http\Requests\FamilyMemberUpdateRequest;
 use App\Http\Resources\FamilyMemberResource;
 use App\Http\Resources\PaginateResource;
 use App\Interfaces\FamilyMemberRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -64,9 +67,24 @@ class FamilyMemberController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(FamilyMemberStoreRequest $request)
     {
-        //
+        $data = $request->validated();
+        DB::beginTransaction();
+
+        try {
+            $familyMember = $this->familyMemberRepoInter->create($data);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Anggota Keluarga Berhasil Ditambahkan', new FamilyMemberResource($familyMember), 201);
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to save family member data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**
@@ -76,11 +94,11 @@ class FamilyMemberController extends Controller
     {
         try {
             $isWithId = $request->boolean('isID', false);
-            $headOfFamily = $this->familyMemberRepoInter->getOneData($string, $isWithId);
-            if (!$headOfFamily) {
+            $familyMember = $this->familyMemberRepoInter->getOneData($string, $isWithId);
+            if (!$familyMember) {
                 return ResponseHelper::jsonResponse(false, 'Data Anggota Keluarga Tidak Ditemukan!', null, 404);
             }
-            return ResponseHelper::jsonResponse(true, 'Data Anggota Keluarga Ditemukan', new FamilyMemberResource($headOfFamily), 200);
+            return ResponseHelper::jsonResponse(true, 'Data Anggota Keluarga Ditemukan', new FamilyMemberResource($familyMember), 200);
         } catch (\Throwable $err) {
             Log::error('Failed to get family member data', [
                 'message' => $err?->getMessage(),
@@ -94,16 +112,47 @@ class FamilyMemberController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(FamilyMemberUpdateRequest $request, string $familyMember)
     {
-        //
+        $data    = $request->validated();
+        $isWithId = $request->boolean('isID', false);
+
+        DB::beginTransaction();
+        try {
+            $result = $this->familyMemberRepoInter->update($familyMember, $data, $isWithId);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Anggota Keluarga Berhasil Diperbarui', new FamilyMemberResource($result));
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to update family member data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, $err->getCode() ?: 500);
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $familyMember)
     {
-        //
+        $isWithId = $request->boolean('isID', false);
+
+        DB::beginTransaction();
+        try {
+            $result = $this->familyMemberRepoInter->delete($familyMember, $isWithId);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Anggota Keluarga Berhasil Dihapus', new FamilyMemberResource($result));
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to delete family member data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, $err->getCode() ?: 500);
+        }
     }
 }
