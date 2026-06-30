@@ -25,6 +25,7 @@ class HeadOfFamilyResource extends JsonResource
             'martial_status' => $this->martial_status,
             'created_at'     => $this->created_at,
             'updated_at'     => $this->updated_at,
+            'family_member'  => FamilyMemberResource::collection($this->familyMembers),
         ];
     }
 }
