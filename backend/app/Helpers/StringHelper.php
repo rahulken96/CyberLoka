@@ -39,47 +39,66 @@ class StringHelper
         return Carbon::parse($date)->translatedFormat($format);
     }
 
-    public static function numberFormat($string, bool $withRp = false): ?string
+    /**
+     * Format atau sanitasi angka dari input FE.
+     *
+     * @param mixed $string   Input angka (bisa "Rp 155.000", "155,000", atau integer biasa)
+     * @param bool  $withRp   Tambahkan prefix "Rp " (hanya berlaku jika $display = true)
+     * @param bool  $display  true  → string berformat untuk tampilan ("155.000" / "Rp 155.000")
+     *                        false → angka murni int|float untuk disimpan ke DB (155000)
+     */
+    public static function numberFormat($string, bool $withRp = false, bool $display = true): int|float|string|null
     {
-        if (is_string($string)) {
-            // Bersihkan simbol Rp, titik setelah Rp, dan spasi
+        // Jika sudah bertipe numerik murni, skip proses cleaning
+        if (!is_int($string) && !is_float($string)) {
+            if (is_null($string) || $string === '') {
+                if (!$display) return null;
+                return $withRp ? 'Rp 0' : '0';
+            }
+
+            $string = (string) $string;
+
+            // Bersihkan simbol Rp dan spasi
             $string = str_ireplace(['Rp.', 'Rp', 'rp.', 'rp', ' '], '', $string);
-            
-            // Deteksi format pemisah ribuan dan desimal
+            $string = trim($string);
+
             if (strpos($string, '.') !== false && strpos($string, ',') !== false) {
-                // Format Indonesia: 1.500.000,50 -> hapus titik ribuan, ubah koma desimal ke titik desimal
+                // Format Indonesia dengan desimal: 1.500.000,50
                 $string = str_replace('.', '', $string);
                 $string = str_replace(',', '.', $string);
             } elseif (strpos($string, '.') !== false) {
-                // Hanya ada titik. Cek apakah ini desimal (misal 150.50) atau ribuan (misal 150.000)
-                $parts = explode('.', $string);
+                $parts    = explode('.', $string);
                 $lastPart = end($parts);
                 if (strlen($lastPart) === 3) {
-                    // Jika 3 digit di belakang titik, berarti ribuan -> hapus semua titik
+                    // Ribuan: 155.000 -> 155000
                     $string = str_replace('.', '', $string);
                 }
+                // else: desimal biasa 155.50 -> biarkan
             } elseif (strpos($string, ',') !== false) {
-                // Hanya ada koma. Cek apakah ini ribuan (misal 1,500,000) atau desimal (misal 150,50)
-                $parts = explode(',', $string);
+                $parts    = explode(',', $string);
                 $lastPart = end($parts);
                 if (strlen($lastPart) === 3) {
-                    // Ribuan -> hapus koma
+                    // Ribuan: 155,000 -> 155000
                     $string = str_replace(',', '', $string);
                 } else {
-                    // Desimal -> ubah koma ke titik desimal
+                    // Desimal: 155,50 -> 155.50
                     $string = str_replace(',', '.', $string);
                 }
             }
+
+            if (!is_numeric($string)) {
+                if (!$display) return null;
+                return $withRp ? 'Rp 0' : '0';
+            }
+
+            $string = str_contains($string, '.') ? (float) $string : (int) $string;
         }
 
-        if (empty($string) || !is_numeric($string)) {
-            return $withRp ? 'Rp 0' : '0';
-        }
+        // Kembalikan angka murni untuk penyimpanan ke DB
+        if (!$display) return $string;
 
-        $result = number_format((float)$string, 0, ',', '.');
-        if ($withRp) {
-            return 'Rp ' . $result;
-        }
-        return $result;
+        // Kembalikan string berformat untuk tampilan
+        $result = number_format((float) $string, 0, ',', '.');
+        return $withRp ? 'Rp ' . $result : $result;
     }
 }

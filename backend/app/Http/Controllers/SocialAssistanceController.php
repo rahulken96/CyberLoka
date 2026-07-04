@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\ResponseHelper;
+use App\Http\Requests\SocialAssistanceStoreRequest;
+use App\Http\Requests\SocialAssistanceUpdateRequest;
 use App\Http\Resources\PaginateResource;
 use App\Http\Resources\SocialAssistanceResource;
 use App\Interfaces\SocialAssistanceRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -64,9 +67,24 @@ class SocialAssistanceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(SocialAssistanceStoreRequest $request)
     {
-        //
+        $data = $request->validated();
+        DB::beginTransaction();
+
+        try {
+            $socialAssist = $this->socialAssistRepoInter->create($data);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Bansos Berhasil Ditambahkan', new SocialAssistanceResource($socialAssist), 201);
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to save social assistance data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**
@@ -94,16 +112,47 @@ class SocialAssistanceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(SocialAssistanceUpdateRequest $request, string $socialAssist)
     {
-        //
+        $data     = $request->validated();
+        $isWithId = $request->boolean('isID', false);
+
+        DB::beginTransaction();
+        try {
+            $result = $this->socialAssistRepoInter->update($socialAssist, $data, $isWithId);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Bansos Berhasil Diperbarui', new SocialAssistanceResource($result));
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to update social assistance data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $socialAssist)
     {
-        //
+        $isWithId = $request->boolean('isID', false);
+
+        DB::beginTransaction();
+        try {
+            $result = $this->socialAssistRepoInter->delete($socialAssist, $isWithId);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Bansos Berhasil Dihapus', new SocialAssistanceResource($result));
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to delete social assistance data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 }
