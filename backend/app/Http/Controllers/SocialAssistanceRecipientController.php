@@ -6,7 +6,10 @@ use App\Helpers\ResponseHelper;
 use App\Http\Resources\PaginateResource;
 use App\Http\Resources\SocialAssistanceRecipientResource;
 use App\Interfaces\SocialAssistanceRecipientRepositoryInterface;
+use App\Http\Requests\SocialAssistanceRecipientStoreRequest;
+use App\Http\Requests\SocialAssistanceRecipientUpdateRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -64,9 +67,24 @@ class SocialAssistanceRecipientController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(SocialAssistanceRecipientStoreRequest $request)
     {
-        //
+        $data = $request->validated();
+        DB::beginTransaction();
+        
+        try {
+            $recipient = $this->socialAssistRecipientRepoInter->create($data);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Penerima Bansos Berhasil Ditambahkan', new SocialAssistanceRecipientResource($recipient), 201);
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to save recipient`s social assist data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**
@@ -82,7 +100,7 @@ class SocialAssistanceRecipientController extends Controller
             }
             return ResponseHelper::jsonResponse(true, 'Data Penerima Bansos Ditemukan', new SocialAssistanceRecipientResource($socialAssist), 200);
         } catch (\Throwable $err) {
-            Log::error('Failed to get head of family data', [
+            Log::error('Failed to get recipient`s social assist data', [
                 'message' => $err?->getMessage(),
                 'file' => $err?->getFile(),
                 'line' => $err?->getLine(),
@@ -94,16 +112,47 @@ class SocialAssistanceRecipientController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(SocialAssistanceRecipientUpdateRequest $request, string $socialAssistRecipient)
     {
-        //
+        $data     = $request->validated();
+        $isWithId = $request->boolean('isID', false);
+        DB::beginTransaction();
+
+        try {
+            $result = $this->socialAssistRecipientRepoInter->update($socialAssistRecipient, $data, $isWithId);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Bansos Berhasil Diperbarui', new SocialAssistanceRecipientResource($result));
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to update recipient`s social assist data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $socialAssistRecipient)
     {
-        //
+        $isWithId = $request->boolean('isID', false);
+        DB::beginTransaction();
+
+        try {
+            $result = $this->socialAssistRecipientRepoInter->delete($socialAssistRecipient, $isWithId);
+            DB::commit();
+            return ResponseHelper::jsonResponse(true, 'Data Penerima Bansos Berhasil Dihapus', new SocialAssistanceRecipientResource($result));
+        } catch (\Throwable $err) {
+            DB::rollBack();
+            Log::error('Failed to delete recipient`s social assist data', [
+                'message' => $err->getMessage(),
+                'file'    => $err->getFile(),
+                'line'    => $err->getLine(),
+            ]);
+            return ResponseHelper::jsonResponse(false, $err->getMessage(), null, 500);
+        }
     }
 }
