@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             HeadOfFamilySeeder::class,
             SocialAssistanceSeeder::class,
+            EventSeeder::class,
         ]);
     }
 }

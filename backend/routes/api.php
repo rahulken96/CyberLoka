@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\FamilyMemberController;
 use App\Http\Controllers\HeadOfFamilyController;
 use App\Http\Controllers\SocialAssistanceController;
@@ -23,4 +24,7 @@ Route::middleware('throttle:api')->group(function () {
 
     Route::get('social-assistance-recipient/get-all-paginate', [SocialAssistanceRecipientController::class, 'indexPaginate']);
     Route::apiResource('social-assistance-recipient', SocialAssistanceRecipientController::class);
+
+    Route::get('event/get-all-paginate', [EventController::class, 'indexPaginate']);
+    Route::apiResource('event', EventController::class);
 });
