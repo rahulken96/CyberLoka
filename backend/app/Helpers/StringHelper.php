@@ -34,6 +34,8 @@ class StringHelper
 
     public static function dateTranslatedFormat(string $date, string $format = 'Y-m-d H:i:s'): ?string
     {
+        // Y-m-d H:i:s -> 2026-07-15 11:50:01
+        // l, d M Y H:i -> Selasa, 15 Jul 2026 11:50
         if (empty($date)) return null;
         Carbon::setLocale('id');
         return Carbon::parse($date)->translatedFormat($format);
